@@ -1,5 +1,6 @@
 import StepShell from '../components/StepShell.jsx'
 import StepNav from '../components/StepNav.jsx'
+import { SKIP_LABEL } from '../constants.js'
 
 export default function VoiceStep({ data, onChange, onNext, onBack }) {
   const { value, skipped } = data
@@ -10,23 +11,29 @@ export default function VoiceStep({ data, onChange, onNext, onBack }) {
 
   return (
     <StepShell
-      title="もしこのモヤモヤが何か言葉を発しているとしたら、何と言っていると思いますか?"
+      title="このモヤモヤは、あなたに何を伝えていますか?"
       sub="思い浮かんだままの言葉で大丈夫です。"
+      ambient="circle-only"
       onBack={onBack}
     >
       <div className="freewrite-field">
         <textarea
           value={value}
           onChange={(e) => onChange({ value: e.target.value, skipped: false })}
-          placeholder="例:もう疲れた、少し休みたい……など"
+          placeholder="例:よく頑張った、つらかったね……など"
+          disabled={skipped}
         />
       </div>
-      <StepNav
-        skipped={skipped}
-        onToggleSkip={toggleSkip}
-        canProceed={Boolean(value.trim()) || skipped}
-        onNext={onNext}
-      />
+      <div className="choice-list">
+        <button
+          type="button"
+          className={`choice-pill${skipped ? ' is-selected' : ''}`}
+          onClick={toggleSkip}
+        >
+          {SKIP_LABEL}
+        </button>
+      </div>
+      <StepNav canProceed={Boolean(value.trim()) || skipped} onNext={onNext} />
     </StepShell>
   )
 }

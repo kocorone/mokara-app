@@ -1,4 +1,4 @@
-// 前面・シンプルな線画の人型シルエット。各パーツをタップすると体の部位ラベルに変換される。
+// 前面・シンプルな線画の人型シルエット。各パーツをタップすると体の部位ラベルに変換される(複数選択可)。
 const REGIONS = [
   { id: 'head', label: '頭のあたり', el: 'circle', props: { cx: 60, cy: 26, r: 18 } },
   { id: 'neck', label: '首・喉のあたり', el: 'rect', props: { x: 52, y: 44, width: 16, height: 10, rx: 4 } },
@@ -18,30 +18,59 @@ const REGIONS = [
   { id: 'foot-r', label: '足のあたり', el: 'ellipse', props: { cx: 70, cy: 228, rx: 11, ry: 8 } },
 ]
 
-export default function BodySilhouette({ value, onSelect }) {
+const SKIP_LABEL = 'わからない・パス'
+
+export default function BodySilhouette({ value, skipped, onToggle, onSkip }) {
   return (
-    <svg viewBox="0 0 120 250" role="img" aria-label="体のシルエット">
+    <svg viewBox="0 0 120 284" role="img" aria-label="体のシルエット">
       {REGIONS.map((region) => {
         const El = region.el
-        const isSelected = value === region.label
+        const isSelected = value.includes(region.label)
         return (
           <El
             key={region.id}
             {...region.props}
             className={`body-region${isSelected ? ' is-selected' : ''}`}
-            onClick={() => onSelect(region.label)}
+            onClick={() => onToggle(region.label)}
             role="button"
             tabIndex={0}
             aria-label={region.label}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
-                onSelect(region.label)
+                onToggle(region.label)
               }
             }}
           />
         )
       })}
+      {/* 「わからない・パス」も、他の部位と同じ見た目・同じ操作感の領域として並べる */}
+      <g
+        role="button"
+        tabIndex={0}
+        aria-label={SKIP_LABEL}
+        onClick={onSkip}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onSkip()
+          }
+        }}
+        style={{ cursor: 'pointer' }}
+      >
+        <rect x="10" y="246" width="100" height="30" rx="15" className={`body-region${skipped ? ' is-selected' : ''}`} />
+        <text
+          x="60"
+          y="265"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="10"
+          fill={skipped ? '#fff' : 'var(--color-text-soft)'}
+          style={{ pointerEvents: 'none', transition: 'fill 0.2s' }}
+        >
+          {SKIP_LABEL}
+        </text>
+      </g>
     </svg>
   )
 }

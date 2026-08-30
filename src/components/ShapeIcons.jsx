@@ -53,6 +53,25 @@ export function CreatureIcon(props) {
   )
 }
 
+export function OtherShapeIcon(props) {
+  return (
+    <svg viewBox="0 0 64 64" {...props}>
+      <circle cx="32" cy="32" r="24" {...strokeProps} strokeDasharray="7 7" />
+      <path d="M32 23v18M23 32h18" {...strokeProps} />
+    </svg>
+  )
+}
+
+export function QuestionIcon(props) {
+  return (
+    <svg viewBox="0 0 64 64" {...props}>
+      <circle cx="32" cy="32" r="24" {...strokeProps} />
+      <path d="M24 24c0-5 4-9 9-9 4.6 0 8.5 3.3 8.5 7.5 0 5.3-4.3 6.2-6.4 9.3-1 1.5-1.6 2.9-1.6 5" {...strokeProps} />
+      <circle cx="33.5" cy="46" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 export const SHAPE_OPTIONS = [
   { value: 'circle', label: '丸', Icon: CircleIcon },
   { value: 'oval', label: '楕円', Icon: OvalIcon },

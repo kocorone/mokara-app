@@ -1,8 +1,9 @@
 import StepShell from '../components/StepShell.jsx'
 import StepNav from '../components/StepNav.jsx'
 import NoteField from '../components/NoteField.jsx'
+import { SKIP_LABEL } from '../constants.js'
 
-export default function PillChoiceStep({ title, sub, options, data, onChange, onNext, onBack }) {
+export default function PillChoiceStep({ title, sub, options, data, onChange, onNext, onBack, ambient }) {
   const { value, skipped, note } = data
 
   const select = (v) => onChange({ value: v, skipped: false, note })
@@ -12,7 +13,7 @@ export default function PillChoiceStep({ title, sub, options, data, onChange, on
   }
 
   return (
-    <StepShell title={title} sub={sub} onBack={onBack}>
+    <StepShell title={title} sub={sub} ambient={ambient} onBack={onBack}>
       <div className="choice-list">
         {options.map((opt) => (
           <button
@@ -24,14 +25,16 @@ export default function PillChoiceStep({ title, sub, options, data, onChange, on
             {opt}
           </button>
         ))}
+        <button
+          type="button"
+          className={`choice-pill${skipped ? ' is-selected' : ''}`}
+          onClick={toggleSkip}
+        >
+          {SKIP_LABEL}
+        </button>
       </div>
       <NoteField value={note} onChange={(v) => onChange({ ...data, note: v })} />
-      <StepNav
-        skipped={skipped}
-        onToggleSkip={toggleSkip}
-        canProceed={Boolean(value) || skipped}
-        onNext={onNext}
-      />
+      <StepNav canProceed={Boolean(value) || skipped} onNext={onNext} />
     </StepShell>
   )
 }

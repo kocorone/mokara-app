@@ -1,4 +1,4 @@
-function BackArrow() {
+export function BackArrow() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
       <path d="M15 18l-6-6 6-6" />
@@ -6,9 +6,15 @@ function BackArrow() {
   )
 }
 
-export default function StepShell({ title, sub, onBack, children }) {
+// ambient: 'text' = 丸 + 案内文(デフォルト) / 'circle-only' = 丸だけを中央に配置
+export default function StepShell({ title, sub, onBack, children, ambient = 'text' }) {
+  const isCircleOnly = ambient === 'circle-only'
   return (
     <div className="step">
+      <div className={`step-ambient${isCircleOnly ? ' step-ambient--circle-only' : ''}`} aria-hidden="true">
+        <div className="breathing-circle breathing-circle--small" />
+        {!isCircleOnly && <p className="gentle-line">ゆっくり「モヤモヤ」に意識を向けてみましょう</p>}
+      </div>
       <div className="step-header">
         {onBack && (
           <button type="button" className="back-button" onClick={onBack} aria-label="前の画面に戻る">
