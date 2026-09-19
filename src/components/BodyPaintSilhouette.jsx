@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react'
 import { BODY_PATH_D, BODY_VIEWBOX, HEAD_CIRCLE, strokeToPathD } from './bodyShapeDef.js'
+import usePreventTouchScroll from '../usePreventTouchScroll.js'
 
 // 案内サインのようなシンプルな人型ピクトグラムを、指でなぞって(またはドラッグして)塗る操作用コンポーネント。
 // 塗った軌跡は、シルエットの座標系(BODY_VIEWBOX)上の点列として親に渡す。
@@ -8,6 +9,8 @@ export default function BodyPaintSilhouette({ strokes, onChange }) {
   const clipId = useId()
   const drawingRef = useRef(false)
   const [liveStroke, setLiveStroke] = useState(null)
+
+  usePreventTouchScroll(svgRef)
 
   const pointFromEvent = (e) => {
     const rect = svgRef.current.getBoundingClientRect()

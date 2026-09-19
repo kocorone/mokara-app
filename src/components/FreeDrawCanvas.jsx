@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { DRAW_VIEWBOX, strokeToPathD } from '../freeDraw.js'
+import usePreventTouchScroll from '../usePreventTouchScroll.js'
 
 // 「形」ステップの「フリーで描く」用、指でなぞって(またはドラッグして)線を描けるキャンバス。
 // 描いた軌跡は、キャンバスの座標系(DRAW_VIEWBOX)上の点列として親に渡す。
@@ -7,6 +8,8 @@ export default function FreeDrawCanvas({ strokes, onChange }) {
   const svgRef = useRef(null)
   const drawingRef = useRef(false)
   const [liveStroke, setLiveStroke] = useState(null)
+
+  usePreventTouchScroll(svgRef)
 
   const pointFromEvent = (e) => {
     const rect = svgRef.current.getBoundingClientRect()
