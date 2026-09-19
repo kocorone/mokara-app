@@ -570,13 +570,22 @@ input {
   flex-direction: column;
   align-items: center;
   gap: 14px;
+  touch-action: none !important;
 }
 
-.silhouette-wrap svg.body-paint-svg {
+/* <svg>自体にはtouch-actionが効かないWebKitの既知の不具合があるため、
+   svgを囲むHTML要素(div)側にも確実にかける */
+.body-paint-wrap {
+  display: block;
   width: 100%;
   max-width: 200px;
+  touch-action: none !important;
+}
+
+.body-paint-wrap svg.body-paint-svg {
+  width: 100%;
   height: auto;
-  touch-action: none;
+  touch-action: none !important;
   cursor: crosshair;
 }
 
@@ -655,13 +664,21 @@ input {
 }
 
 /* ---- free draw (形: フリーで描く) ---- */
-.free-draw-svg {
+/* <svg>自体にはtouch-actionが効かないWebKitの既知の不具合があるため、
+   svgを囲むHTML要素(div)側にも確実にかける */
+.free-draw-wrap {
   display: block;
   width: 100%;
   max-width: 320px;
-  height: auto;
   margin: 0 auto;
-  touch-action: none;
+  touch-action: none !important;
+}
+
+.free-draw-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none !important;
   cursor: crosshair;
 }
 
