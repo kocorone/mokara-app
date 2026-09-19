@@ -4,6 +4,16 @@
 // SVG描画(React)とCanvas描画(PNG書き出し)の両方から、同じ図形定義を参照する。
 export const BODY_VIEWBOX = { width: 120, height: 172 }
 
+// 人型の「外側」(頭の上・体の周り全体)にもペイントできるよう、
+// 人型のまわりに余白を持たせた、ペイント操作用の広いキャンバス範囲。
+// 人型シルエット自体はこの余白の中央(BODY_OFFSETぶんずらした位置)に描画する。
+export const BODY_PAINT_MARGIN = 40
+export const PAINT_VIEWBOX = {
+  width: BODY_VIEWBOX.width + BODY_PAINT_MARGIN * 2,
+  height: BODY_VIEWBOX.height + BODY_PAINT_MARGIN * 2,
+}
+export const BODY_OFFSET = { x: BODY_PAINT_MARGIN, y: BODY_PAINT_MARGIN }
+
 // 頭(胴体とは別の、独立した丸)。頭1つぶんに対して全身が4頭身ほどになるよう、
 // 頭を大きめ・胴体と脚を短めにしたバランス。
 export const HEAD_CIRCLE = { cx: 60, cy: 24, r: 20 }
@@ -85,8 +95,8 @@ export function strokeToPathD(points) {
   return points.reduce((d, p, i) => `${d}${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)} `, '')
 }
 
-// 胴体パス+頭の丸を合わせた、Canvas用のクリップ領域(塗りをシルエット内に収めるために使う)。
-// PNG書き出し・インタラクティブな塗りキャンバスの両方から参照する。
+// 胴体パス+頭の丸を合わせた、人型シルエットの塗り範囲。
+// PNG書き出し・インタラクティブな塗りキャンバスの両方から、シルエット自体の描画に使う。
 export function getBodyClipPath() {
   const path = new Path2D(BODY_PATH_D)
   path.moveTo(HEAD_CIRCLE.cx + HEAD_CIRCLE.r, HEAD_CIRCLE.cy)
@@ -95,21 +105,21 @@ export function getBodyClipPath() {
 }
 
 // 記録画像(PNG)向け: 塗った跡つきの人型シルエットを、高さheightで(x, y)を左上として描画する
+// (人型の周りの余白にはみ出して塗った跡もそのまま描画する)
 export function drawBodySilhouettePreview(ctx, strokes, x, y, height, colors) {
-  const scale = height / BODY_VIEWBOX.height
-  const width = BODY_VIEWBOX.width * scale
+  const scale = height / PAINT_VIEWBOX.height
+  const width = PAINT_VIEWBOX.width * scale
 
   ctx.save()
   ctx.translate(x, y)
   ctx.scale(scale, scale)
 
-  const bodyPath = getBodyClipPath()
-
-  ctx.fillStyle = colors.silhouette
-  ctx.fill(bodyPath)
-
   ctx.save()
-  ctx.clip(bodyPath)
+  ctx.translate(BODY_OFFSET.x, BODY_OFFSET.y)
+  ctx.fillStyle = colors.silhouette
+  ctx.fill(getBodyClipPath())
+  ctx.restore()
+
   ctx.strokeStyle = colors.primary
   ctx.fillStyle = colors.primary
   ctx.lineWidth = 10
@@ -128,7 +138,6 @@ export function drawBodySilhouettePreview(ctx, strokes, x, y, height, colors) {
     pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
     ctx.stroke()
   })
-  ctx.restore()
   ctx.restore()
 
   return { width, height }

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { BODY_VIEWBOX, getBodyClipPath } from './bodyShapeDef.js'
+import { PAINT_VIEWBOX, BODY_OFFSET, getBodyClipPath } from './bodyShapeDef.js'
 import { cssVar } from '../cssVar.js'
 import { lockPageScroll, unlockPageScroll } from '../touchScrollLock.js'
 
@@ -19,8 +19,11 @@ function readColors() {
 }
 
 function drawSilhouette(ctx, colors) {
+  ctx.save()
+  ctx.translate(BODY_OFFSET.x, BODY_OFFSET.y)
   ctx.fillStyle = colors.silhouette
   ctx.fill(getBodyClipPath())
+  ctx.restore()
 }
 
 function drawStrokeSegment(ctx, pts, colors) {
@@ -50,20 +53,16 @@ export default function BodyPaintSilhouette({ strokes, onChange }) {
   const strokesRef = useRef(strokes)
   const drawingRef = useRef(false)
   const currentStrokeRef = useRef([])
-  const clipActiveRef = useRef(false)
 
   strokesRef.current = strokes
 
-  // 塗り跡はシルエットの外にはみ出さないよう、常にクリップ領域内で描画する
+  // 人型の外側(頭の上・体の周り全体)にも自由に塗れるよう、シルエットへのクリップは行わない
   const redrawAll = () => {
     const ctx = ctxRef.current
     if (!ctx || !colorsRef.current) return
-    ctx.clearRect(0, 0, BODY_VIEWBOX.width, BODY_VIEWBOX.height)
+    ctx.clearRect(0, 0, PAINT_VIEWBOX.width, PAINT_VIEWBOX.height)
     drawSilhouette(ctx, colorsRef.current)
-    ctx.save()
-    ctx.clip(getBodyClipPath())
     strokesRef.current.forEach((pts) => drawStrokeSegment(ctx, pts, colorsRef.current))
-    ctx.restore()
   }
 
   useEffect(() => {
@@ -73,14 +72,14 @@ export default function BodyPaintSilhouette({ strokes, onChange }) {
 
     const setup = () => {
       const displayWidth = wrap.clientWidth
-      const displayHeight = displayWidth * (BODY_VIEWBOX.height / BODY_VIEWBOX.width)
+      const displayHeight = displayWidth * (PAINT_VIEWBOX.height / PAINT_VIEWBOX.width)
       const dpr = window.devicePixelRatio || 1
       canvas.style.width = `${displayWidth}px`
       canvas.style.height = `${displayHeight}px`
       canvas.width = Math.round(displayWidth * dpr)
       canvas.height = Math.round(displayHeight * dpr)
       const ctx = canvas.getContext('2d')
-      const cssScale = displayWidth / BODY_VIEWBOX.width
+      const cssScale = displayWidth / PAINT_VIEWBOX.width
       ctx.setTransform(dpr * cssScale, 0, 0, dpr * cssScale, 0, 0)
       ctxRef.current = ctx
       colorsRef.current = readColors()
@@ -100,8 +99,8 @@ export default function BodyPaintSilhouette({ strokes, onChange }) {
 
   const pointFromEvent = (e) => {
     const rect = canvasRef.current.getBoundingClientRect()
-    const x = ((e.clientX - rect.left) / rect.width) * BODY_VIEWBOX.width
-    const y = ((e.clientY - rect.top) / rect.height) * BODY_VIEWBOX.height
+    const x = ((e.clientX - rect.left) / rect.width) * PAINT_VIEWBOX.width
+    const y = ((e.clientY - rect.top) / rect.height) * PAINT_VIEWBOX.height
     return { x, y }
   }
 
@@ -118,9 +117,6 @@ export default function BodyPaintSilhouette({ strokes, onChange }) {
 
     const ctx = ctxRef.current
     redrawAll()
-    ctx.save()
-    ctx.clip(getBodyClipPath())
-    clipActiveRef.current = true
 
     const p = pointFromEvent(e)
     currentStrokeRef.current = [p]
@@ -147,10 +143,6 @@ export default function BodyPaintSilhouette({ strokes, onChange }) {
   const finishStroke = () => {
     if (!drawingRef.current) return
     drawingRef.current = false
-    if (clipActiveRef.current) {
-      ctxRef.current.restore()
-      clipActiveRef.current = false
-    }
     unlockPageScroll()
     if (currentStrokeRef.current.length > 0) {
       onChange([...strokesRef.current, currentStrokeRef.current])

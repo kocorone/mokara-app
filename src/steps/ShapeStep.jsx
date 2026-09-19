@@ -5,14 +5,14 @@ import NoteField from '../components/NoteField.jsx'
 import FreeDrawCanvas from '../components/FreeDrawCanvas.jsx'
 import { SHAPE_OPTIONS, OtherShapeIcon, QuestionIcon, FreeDrawIcon } from '../components/ShapeIcons.jsx'
 import { SKIP_LABEL, SHAPE_OTHER_VALUE } from '../constants.js'
-import { toggleMultiValue, toggleMultiSkip } from '../answerUtils.js'
+import { toggleSingleValue, toggleMultiSkip } from '../answerUtils.js'
 
 export default function ShapeStep({ data, onChange, onNext, onBack }) {
   const { value, skipped, note, drawing = [] } = data
   const [mode, setMode] = useState(drawing.length > 0 ? 'draw' : 'pick')
 
   // 他の形・「わからない・パス」を選び直したときは、「フリーで描く」の内容を解除する
-  const toggle = (v) => onChange({ ...toggleMultiValue(data, v), drawing: [] })
+  const toggle = (v) => onChange({ ...toggleSingleValue(data, v), drawing: [] })
   const toggleSkip = () => onChange({ ...toggleMultiSkip(data), drawing: [] })
 
   const setStrokes = (next) => onChange({ ...data, drawing: next, skipped: false })
@@ -61,7 +61,7 @@ export default function ShapeStep({ data, onChange, onNext, onBack }) {
   }
 
   return (
-    <StepShell title="そのモヤモヤは、どんな形をしていますか?" sub="いくつ選んでも大丈夫です。" ambient="circle-only" onBack={onBack}>
+    <StepShell title="そのモヤモヤは、どんな形をしていますか?" sub="1つ選んでください。" ambient="circle-only" onBack={onBack}>
       <div className="option-grid">
         {SHAPE_OPTIONS.map(({ value: v, label, Icon }) => (
           <button
