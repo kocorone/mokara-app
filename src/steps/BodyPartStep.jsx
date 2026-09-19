@@ -1,31 +1,51 @@
 import StepShell from '../components/StepShell.jsx'
 import StepNav from '../components/StepNav.jsx'
 import NoteField from '../components/NoteField.jsx'
-import BodySilhouette from '../components/BodySilhouette.jsx'
+import BodyPaintSilhouette from '../components/BodyPaintSilhouette.jsx'
 import { SKIP_LABEL } from '../constants.js'
-import { toggleMultiValue, toggleMultiSkip } from '../answerUtils.js'
+import { toggleMultiSkip } from '../answerUtils.js'
 
 export default function BodyPartStep({ data, onChange, onNext, onBack }) {
-  const { value, skipped, note } = data
+  const { value: strokes, skipped, note } = data
 
-  const toggle = (label) => onChange(toggleMultiValue(data, label))
+  const setStrokes = (next) => onChange({ ...data, value: next, skipped: false })
   const toggleSkip = () => onChange(toggleMultiSkip(data))
-
-  const displayLabel = skipped ? SKIP_LABEL : value.length ? value.join('・') : ' '
+  const undo = () => setStrokes(strokes.slice(0, -1))
+  const clear = () => setStrokes([])
 
   return (
     <StepShell
       title="そのモヤモヤは、体のどのあたりにありますか?"
-      sub="人型の図をタップして、近いところを教えてください。いくつ選んでも大丈夫です。"
+      sub="人型の図を指でなぞって(またはドラッグして)、感じるところに色をつけてみてください。"
       ambient="circle-only"
       onBack={onBack}
     >
       <div className="silhouette-wrap">
-        <BodySilhouette value={value} skipped={skipped} onToggle={toggle} onSkip={toggleSkip} />
-        <div className="body-region-label">{displayLabel}</div>
+        {skipped ? (
+          <div className="body-region-label">{SKIP_LABEL}</div>
+        ) : (
+          <>
+            <BodyPaintSilhouette strokes={strokes} onChange={setStrokes} />
+            <div className="paint-tools-row">
+              <button type="button" className="paint-tool-button" onClick={undo} disabled={strokes.length === 0}>
+                ひとつ戻す
+              </button>
+              <button type="button" className="paint-tool-button" onClick={clear} disabled={strokes.length === 0}>
+                全部消す
+              </button>
+            </div>
+          </>
+        )}
+        <button
+          type="button"
+          className={`skip-toggle-button${skipped ? ' is-selected' : ''}`}
+          onClick={toggleSkip}
+        >
+          {SKIP_LABEL}
+        </button>
       </div>
       <NoteField value={note} onChange={(v) => onChange({ ...data, note: v })} />
-      <StepNav canProceed={value.length > 0 || skipped} onNext={onNext} />
+      <StepNav canProceed={strokes.length > 0 || skipped} onNext={onNext} />
     </StepShell>
   )
 }

@@ -12,6 +12,8 @@ import RedoPickStep from './steps/RedoPickStep.jsx'
 import ReflectStep from './steps/ReflectStep.jsx'
 import DoneStep from './steps/DoneStep.jsx'
 import ProgressBar from './components/ProgressBar.jsx'
+import BackgroundMusic from './components/BackgroundMusic.jsx'
+import AppTitle from './components/AppTitle.jsx'
 import { SIZE_OPTIONS, QUESTION_ORDER } from './constants.js'
 
 const emptyMulti = () => ({ value: [], skipped: false, note: '' })
@@ -19,7 +21,7 @@ const emptySingle = () => ({ value: null, skipped: false, note: '' })
 
 function initialAnswers() {
   return {
-    shape: emptyMulti(),
+    shape: { value: [], skipped: false, note: '', drawing: [] },
     hardness: emptyMulti(),
     size: emptySingle(),
     bodyPart: emptyMulti(),
@@ -160,9 +162,11 @@ export default function App() {
   return (
     <div className="app-shell">
       <div className="app-inner">
+        {screen !== 'intro' && <AppTitle variant="compact" />}
         {showProgress && <ProgressBar total={queue.length} currentIndex={queueIndex} />}
         {content}
       </div>
+      <BackgroundMusic />
     </div>
   )
 }

@@ -12,6 +12,7 @@
   --color-primary-soft: #e9d9cb;
   --color-accent: #93a98d;
   --color-accent-soft: #dfe8db;
+  --color-silhouette: #ded1c0;
   --radius-lg: 26px;
   --radius-md: 18px;
   --radius-sm: 12px;
@@ -67,6 +68,146 @@ input {
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+/* ---- app title block(導入画面のヒーロー表示・各画面の常設ヘッダーで共通利用) ---- */
+.app-title-block {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.app-title-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 240px;
+  height: 240px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-primary-soft) 0%, rgba(247, 243, 238, 0) 68%);
+  opacity: 0.8;
+  animation: breathe 6s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.app-title-decor {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-title-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary-soft), transparent);
+}
+
+.app-title-heading {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1px;
+  font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+}
+
+.app-title-bracket {
+  font-weight: 400;
+  color: var(--color-text-faint);
+}
+
+.app-title-main {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0 2px;
+  color: var(--color-primary);
+}
+
+.app-title-sub {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+  color: var(--color-text-faint);
+}
+
+/* 導入画面: 大きく印象的に表示するバリエーション */
+.app-title-block--hero {
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.app-title-block--hero .app-title-line {
+  width: 60px;
+}
+
+.app-title-block--hero .app-title-bracket {
+  font-size: 1.3rem;
+}
+
+.app-title-block--hero .app-title-main {
+  font-size: 2.05rem;
+}
+
+.app-title-block--hero .app-title-sub {
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+
+/* 各画面上部の常設ヘッダー: 控えめなサイズのバリエーション */
+.app-title-block--compact {
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.app-title-block--compact .app-title-line {
+  width: 34px;
+}
+
+.app-title-block--compact .app-title-bracket {
+  font-size: 0.88rem;
+}
+
+.app-title-block--compact .app-title-main {
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+}
+
+.app-title-block--compact .app-title-sub {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+/* ---- background music toggle ---- */
+.music-toggle-button {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-soft);
+  z-index: 40;
+  transition: color 0.2s, transform 0.15s var(--ease-soft);
+}
+
+.music-toggle-button:hover {
+  color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
 /* ---- progress ---- */
@@ -431,27 +572,24 @@ input {
   gap: 14px;
 }
 
-.silhouette-wrap svg {
+.silhouette-wrap svg.body-paint-svg {
   width: 100%;
-  max-width: 220px;
+  max-width: 200px;
   height: auto;
+  touch-action: none;
+  cursor: crosshair;
 }
 
-.body-region {
-  fill: var(--color-surface-soft);
-  stroke: var(--color-text-faint);
-  stroke-width: 1.5;
-  transition: fill 0.2s var(--ease-soft), stroke 0.2s var(--ease-soft);
-  cursor: pointer;
+.body-silhouette-fill {
+  fill: var(--color-silhouette);
 }
 
-.body-region:hover {
-  fill: var(--color-primary-soft);
-}
-
-.body-region.is-selected {
-  fill: var(--color-primary);
+.body-paint-stroke {
+  fill: none;
   stroke: var(--color-primary);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .body-region-label {
@@ -459,6 +597,99 @@ input {
   color: var(--color-primary);
   font-size: 0.95rem;
   text-align: center;
+}
+
+.paint-tools-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 260px;
+  align-self: center;
+}
+
+.paint-tool-button {
+  flex: 1;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-soft);
+  font-size: 0.85rem;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.paint-tool-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.paint-tool-button:not(:disabled):hover {
+  border-color: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+.skip-toggle-button {
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-soft);
+  font-size: 0.85rem;
+  padding: 9px 18px;
+  border-radius: 999px;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.skip-toggle-button.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.body-part-preview-wrap {
+  display: flex;
+}
+
+.body-part-preview {
+  width: 64px;
+  height: auto;
+}
+
+/* ---- free draw (形: フリーで描く) ---- */
+.free-draw-svg {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 0 auto;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.free-draw-bg {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 2;
+}
+
+.free-draw-stroke {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.shape-drawing-preview-wrap {
+  display: flex;
+}
+
+.shape-drawing-preview {
+  width: 140px;
+  height: auto;
+}
+
+.shape-drawing-bg {
+  fill: var(--color-surface-soft);
 }
 
 /* ---- footer nav ---- */

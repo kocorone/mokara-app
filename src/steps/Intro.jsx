@@ -1,6 +1,9 @@
+import AppTitle from '../components/AppTitle.jsx'
+
 export default function Intro({ onStart }) {
   return (
     <div className="intro-screen">
+      <AppTitle variant="hero" />
       <div className="breathing-circle" aria-hidden="true" />
       <div className="intro-text">
         <p>

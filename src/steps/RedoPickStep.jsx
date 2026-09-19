@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import StepShell from '../components/StepShell.jsx'
 import { QUESTION_FIELDS } from '../constants.js'
-import { ShapeFieldValue, ColorFieldValue, textFieldValue, noteOf } from '../components/FieldValue.jsx'
+import { ShapeFieldValue, ColorFieldValue, BodyPartFieldValue, textFieldValue, noteOf } from '../components/FieldValue.jsx'
 
 // 各項目の「今選んでいる内容」を、統合表示画面と同じ見た目で見せる
 function FieldPreview({ fieldKey, answers }) {
   if (fieldKey === 'shape') return <ShapeFieldValue entry={answers.shape} />
   if (fieldKey === 'color') return <ColorFieldValue entry={answers.color} />
+  if (fieldKey === 'bodyPart') return <BodyPartFieldValue entry={answers.bodyPart} />
   return <span className="summary-row-value">{textFieldValue(fieldKey, answers)}</span>
 }
 

@@ -1,4 +1,6 @@
 import { SHAPE_OPTIONS, OtherShapeIcon, QuestionIcon } from './ShapeIcons.jsx'
+import BodyPartPreview from './BodyPartPreview.jsx'
+import ShapeDrawingPreview from './ShapeDrawingPreview.jsx'
 import { SHAPE_OTHER_VALUE, SKIP_LABEL } from '../constants.js'
 import { textOf, multiTextOf, shapeValueLabel } from '../answerFormat.js'
 
@@ -7,8 +9,16 @@ function shapeIconFor(value) {
   return SHAPE_OPTIONS.find((s) => s.value === value)?.Icon ?? null
 }
 
-// 形は、選択画面と同じイラスト + 言葉のラベルを横並びで表示する(背景なし)
+// 形は、「フリーで描く」で線画があればその線画そのものを、なければ選択画面と同じ
+// イラスト + 言葉のラベルを横並びで表示する(背景なし)
 export function ShapeFieldValue({ entry }) {
+  if (entry.drawing && entry.drawing.length > 0) {
+    return (
+      <div className="shape-drawing-preview-wrap">
+        <ShapeDrawingPreview strokes={entry.drawing} />
+      </div>
+    )
+  }
   if (entry.skipped || entry.value.length === 0) {
     return <span className="summary-row-value">{SKIP_LABEL}</span>
   }
@@ -25,6 +35,18 @@ export function ShapeFieldValue({ entry }) {
           </span>
         )
       })}
+    </div>
+  )
+}
+
+// 体の部位は、言葉のラベルではなく、塗った跡が残る人型シルエットの絵で表示する
+export function BodyPartFieldValue({ entry }) {
+  if (entry.skipped || !entry.value || entry.value.length === 0) {
+    return <span className="summary-row-value">{SKIP_LABEL}</span>
+  }
+  return (
+    <div className="body-part-preview-wrap">
+      <BodyPartPreview strokes={entry.value} />
     </div>
   )
 }
@@ -49,8 +71,6 @@ export function textFieldValue(key, answers) {
       return multiTextOf(answers.hardness)
     case 'size':
       return textOf(answers.size)
-    case 'bodyPart':
-      return multiTextOf(answers.bodyPart)
     case 'word':
       return multiTextOf(answers.word)
     case 'voice':

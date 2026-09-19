@@ -53,6 +53,15 @@ export function CreatureIcon(props) {
   )
 }
 
+export function FreeDrawIcon(props) {
+  return (
+    <svg viewBox="0 0 64 64" {...props}>
+      <path d="M39 11l14 14-25 25-16 3 3-16z" {...strokeProps} />
+      <path d="M35 15l14 14" {...strokeProps} />
+    </svg>
+  )
+}
+
 export function OtherShapeIcon(props) {
   return (
     <svg viewBox="0 0 64 64" {...props}>

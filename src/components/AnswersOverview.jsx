@@ -1,5 +1,5 @@
 import { QUESTION_FIELDS } from '../constants.js'
-import { ShapeFieldValue, ColorFieldValue, textFieldValue, noteOf } from './FieldValue.jsx'
+import { ShapeFieldValue, ColorFieldValue, BodyPartFieldValue, textFieldValue, noteOf } from './FieldValue.jsx'
 
 export default function AnswersOverview({ answers, showReflection = false }) {
   return (
@@ -10,7 +10,8 @@ export default function AnswersOverview({ answers, showReflection = false }) {
             <span className="summary-row-label">{label}</span>
             {key === 'shape' && <ShapeFieldValue entry={answers.shape} />}
             {key === 'color' && <ColorFieldValue entry={answers.color} />}
-            {key !== 'shape' && key !== 'color' && (
+            {key === 'bodyPart' && <BodyPartFieldValue entry={answers.bodyPart} />}
+            {key !== 'shape' && key !== 'color' && key !== 'bodyPart' && (
               <span className="summary-row-value">{textFieldValue(key, answers)}</span>
             )}
             {noteOf(key, answers) && <div className="summary-row-note">メモ: {noteOf(key, answers)}</div>}

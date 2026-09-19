@@ -1,6 +1,11 @@
 // 記録を、統合表示画面(AnswersOverview)と同じ見た目のままPNG画像として書き出す。
 import { SKIP_LABEL } from './constants.js'
 import { textOf, multiTextOf, shapeValueLabel } from './answerFormat.js'
+import { drawBodySilhouettePreview } from './components/bodyShapeDef.js'
+import { drawFreeDrawingPreview, DRAW_VIEWBOX } from './freeDraw.js'
+
+const APP_TITLE = '『たゆたね』'
+const APP_TAGLINE = '〜体の声を聴くアプリ〜'
 
 const FONT_STACK = '"Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif'
 const CANVAS_WIDTH = 900
@@ -123,11 +128,16 @@ function drawShapeGlyph(ctx, shapeValue, cx, cy, size, color) {
   ctx.restore()
 }
 
-// 「形」: イラスト(アイコン、背景なし)+ 言葉のラベルを右隣に、選んだ数だけ横に並べる
+// 「形」: 「フリーで描く」の線画があればそれを、なければイラスト(アイコン、背景なし)+
+// 言葉のラベルを右隣に選んだ数だけ横に並べる
 const SHAPE_CAPTION_MAX_WIDTH = 130
 const SHAPE_CAPTION_LINE_HEIGHT = 22
+const SHAPE_DRAWING_WIDTH = 280
 
 function measureShapeRow(mctx, entry, itemSize) {
+  if (entry.drawing && entry.drawing.length > 0) {
+    return { kind: 'drawing', height: SHAPE_DRAWING_WIDTH * (DRAW_VIEWBOX.height / DRAW_VIEWBOX.width) }
+  }
   if (entry.skipped || entry.value.length === 0) return { kind: 'text', height: 30, items: [] }
   mctx.font = `400 16px ${FONT_STACK}`
   const items = entry.value.map((v) => {
@@ -140,7 +150,11 @@ function measureShapeRow(mctx, entry, itemSize) {
   return { kind: 'shape', height, items }
 }
 
-function drawShapeRow(ctx, meta, x, y, itemSize, colors) {
+function drawShapeRow(ctx, meta, x, y, itemSize, colors, entry) {
+  if (meta.kind === 'drawing') {
+    drawFreeDrawingPreview(ctx, entry.drawing, x, y, SHAPE_DRAWING_WIDTH, colors)
+    return
+  }
   if (meta.kind !== 'shape') {
     ctx.textAlign = 'left'
     ctx.fillStyle = colors.text
@@ -206,17 +220,18 @@ function buildRecordImageBlob(answers) {
       textSoft: cssVar('--color-text-soft', '#8a8578'),
       textFaint: cssVar('--color-text-faint', '#b3ac9e'),
       primary: cssVar('--color-primary', '#c39a82'),
+      accent: cssVar('--color-accent', '#93a98d'),
+      silhouette: cssVar('--color-silhouette', '#ded1c0'),
     }
 
     const now = new Date()
     const dateStr = now.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
     const timeStr = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 
-    // 統合表示画面(AnswersOverview)と同じ並び順 + 自由記述を最後に追加
+    // 統合表示画面(AnswersOverview)と同じ並び順 + 自由記述を最後に追加(体の部位は絵で描画するため別枠)
     const textRows = [
       { key: 'hardness', label: '触り心地', value: multiTextOf(hardness), note: hardness.note },
       { key: 'size', label: '大きさ', value: textOf(size), note: size.note },
-      { key: 'bodyPart', label: '体の部位', value: multiTextOf(bodyPart), note: bodyPart.note },
       { key: 'word', label: '気持ち', value: multiTextOf(word), note: word.note },
       { key: 'voice', label: 'モヤモヤからの言葉', value: textOf(voice), note: null },
       {
@@ -250,6 +265,14 @@ function buildRecordImageBlob(answers) {
     const shapeItemSize = 62
     const shapeRowMeta = measureShapeRow(mctx, shape, shapeItemSize)
 
+    // 体の部位: 塗った跡つきの人型シルエットの絵として描画する(言葉のラベルは使わない)
+    const bodyPartItemHeight = 130
+    const bodyPartRowMeta =
+      bodyPart.skipped || !bodyPart.value || bodyPart.value.length === 0
+        ? { kind: 'text', height: 30 }
+        : { kind: 'body', height: bodyPartItemHeight }
+    const bodyPartNoteLines = noteLinesOf(bodyPart.note)
+
     const headerMessage =
       '今日のモヤモヤを大切に感じた記録です。ちゃんと自分とつながりながら感じることができたことを、よかったら時々思い出してください。'
     const headerMessageLineHeight = 22
@@ -282,7 +305,15 @@ function buildRecordImageBlob(answers) {
     }
     innerHeight += rowGap
 
-    // テキスト系の項目(触り心地・大きさ・体の部位・気持ち・モヤモヤからの言葉・自由記述)
+    // 体の部位
+    innerHeight += labelHeight
+    innerHeight += bodyPartRowMeta.height
+    if (bodyPartNoteLines.length) {
+      innerHeight += noteBlockHeight(bodyPartNoteLines.length)
+    }
+    innerHeight += rowGap
+
+    // テキスト系の項目(触り心地・大きさ・気持ち・モヤモヤからの言葉・自由記述)
     textRows.forEach((row, i) => {
       innerHeight += labelHeight
       innerHeight += textRowLines[i].length * lineHeight
@@ -295,7 +326,7 @@ function buildRecordImageBlob(answers) {
     const cardHeight = CARD_PADDING_Y * 2 + innerHeight
 
     // ---- ページ全体の高さ ----
-    const headerHeight = 70
+    const headerHeight = 92
     const headerMessageHeight = headerMessageLines.length * headerMessageLineHeight + 20
     const footerHeight = 70
     const height =
@@ -311,12 +342,16 @@ function buildRecordImageBlob(answers) {
     ctx.fillStyle = colors.bg
     ctx.fillRect(0, 0, CANVAS_WIDTH, height)
 
-    // ヘッダー: タイトル(左) / 日付時刻(右)
+    // ヘッダー: アプリ名(左) / 日付時刻(右)
     let y = PAGE_MARGIN
     ctx.textAlign = 'left'
     ctx.fillStyle = colors.text
     ctx.font = `500 26px ${FONT_STACK}`
-    ctx.fillText('今日のモヤモヤの記録', PAGE_MARGIN, y + 26)
+    ctx.fillText(APP_TITLE, PAGE_MARGIN, y + 26)
+
+    ctx.fillStyle = colors.textSoft
+    ctx.font = `400 14px ${FONT_STACK}`
+    ctx.fillText(APP_TAGLINE, PAGE_MARGIN, y + 46)
 
     ctx.textAlign = 'right'
     ctx.fillStyle = colors.textFaint
@@ -378,7 +413,7 @@ function buildRecordImageBlob(answers) {
 
     // 形
     drawLabel('形')
-    drawShapeRow(ctx, shapeRowMeta, rowX, rowY, shapeItemSize, colors)
+    drawShapeRow(ctx, shapeRowMeta, rowX, rowY, shapeItemSize, colors, shape)
     rowY += shapeRowMeta.height
     drawNote(shapeNoteLines)
     rowY += rowGap
@@ -398,7 +433,22 @@ function buildRecordImageBlob(answers) {
     drawNote(colorNoteLines)
     rowY += rowGap
 
-    // 触り心地・大きさ・体の部位・気持ち・モヤモヤからの言葉・自由記述
+    // 体の部位(言葉ではなく、塗った跡つきの人型シルエットの絵で描画する)
+    drawLabel('体の部位')
+    if (bodyPartRowMeta.kind === 'text') {
+      ctx.textAlign = 'left'
+      ctx.fillStyle = colors.text
+      ctx.font = `500 22px ${FONT_STACK}`
+      ctx.fillText(SKIP_LABEL, rowX, rowY + 20)
+      rowY += 30
+    } else {
+      drawBodySilhouettePreview(ctx, bodyPart.value, rowX, rowY, bodyPartItemHeight, colors)
+      rowY += bodyPartItemHeight
+    }
+    drawNote(bodyPartNoteLines)
+    rowY += rowGap
+
+    // 触り心地・大きさ・気持ち・モヤモヤからの言葉・自由記述
     textRows.forEach((row, i) => {
       drawLabel(row.label)
       ctx.textAlign = 'left'
