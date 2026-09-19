@@ -85,6 +85,15 @@ export function strokeToPathD(points) {
   return points.reduce((d, p, i) => `${d}${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)} `, '')
 }
 
+// 胴体パス+頭の丸を合わせた、Canvas用のクリップ領域(塗りをシルエット内に収めるために使う)。
+// PNG書き出し・インタラクティブな塗りキャンバスの両方から参照する。
+export function getBodyClipPath() {
+  const path = new Path2D(BODY_PATH_D)
+  path.moveTo(HEAD_CIRCLE.cx + HEAD_CIRCLE.r, HEAD_CIRCLE.cy)
+  path.arc(HEAD_CIRCLE.cx, HEAD_CIRCLE.cy, HEAD_CIRCLE.r, 0, Math.PI * 2)
+  return path
+}
+
 // 記録画像(PNG)向け: 塗った跡つきの人型シルエットを、高さheightで(x, y)を左上として描画する
 export function drawBodySilhouettePreview(ctx, strokes, x, y, height, colors) {
   const scale = height / BODY_VIEWBOX.height
@@ -94,9 +103,7 @@ export function drawBodySilhouettePreview(ctx, strokes, x, y, height, colors) {
   ctx.translate(x, y)
   ctx.scale(scale, scale)
 
-  const bodyPath = new Path2D(BODY_PATH_D)
-  bodyPath.moveTo(HEAD_CIRCLE.cx + HEAD_CIRCLE.r, HEAD_CIRCLE.cy)
-  bodyPath.arc(HEAD_CIRCLE.cx, HEAD_CIRCLE.cy, HEAD_CIRCLE.r, 0, Math.PI * 2)
+  const bodyPath = getBodyClipPath()
 
   ctx.fillStyle = colors.silhouette
   ctx.fill(bodyPath)

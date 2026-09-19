@@ -573,8 +573,6 @@ input {
   touch-action: none !important;
 }
 
-/* <svg>自体にはtouch-actionが効かないWebKitの既知の不具合があるため、
-   svgを囲むHTML要素(div)側にも確実にかける */
 .body-paint-wrap {
   display: block;
   width: 100%;
@@ -582,9 +580,8 @@ input {
   touch-action: none !important;
 }
 
-.body-paint-wrap svg.body-paint-svg {
-  width: 100%;
-  height: auto;
+.body-paint-canvas {
+  display: block;
   touch-action: none !important;
   cursor: crosshair;
 }
@@ -664,8 +661,6 @@ input {
 }
 
 /* ---- free draw (形: フリーで描く) ---- */
-/* <svg>自体にはtouch-actionが効かないWebKitの既知の不具合があるため、
-   svgを囲むHTML要素(div)側にも確実にかける */
 .free-draw-wrap {
   display: block;
   width: 100%;
@@ -674,18 +669,10 @@ input {
   touch-action: none !important;
 }
 
-.free-draw-svg {
+.free-draw-canvas {
   display: block;
-  width: 100%;
-  height: auto;
   touch-action: none !important;
   cursor: crosshair;
-}
-
-.free-draw-bg {
-  fill: var(--color-surface);
-  stroke: var(--color-border);
-  stroke-width: 2;
 }
 
 .free-draw-stroke {

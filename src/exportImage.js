@@ -3,6 +3,7 @@ import { SKIP_LABEL } from './constants.js'
 import { textOf, multiTextOf, shapeValueLabel } from './answerFormat.js'
 import { drawBodySilhouettePreview } from './components/bodyShapeDef.js'
 import { drawFreeDrawingPreview, DRAW_VIEWBOX } from './freeDraw.js'
+import { cssVar } from './cssVar.js'
 
 const APP_TITLE = '『たゆたね』'
 const APP_TAGLINE = '〜体の声を聴くアプリ〜'
@@ -13,12 +14,6 @@ const SCALE = 2
 const PAGE_MARGIN = 44
 const CARD_PADDING_X = 40
 const CARD_PADDING_Y = 44
-
-function cssVar(name, fallback) {
-  if (typeof window === 'undefined') return fallback
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name)
-  return v && v.trim() ? v.trim() : fallback
-}
 
 async function ensureFontsReady() {
   if (typeof document === 'undefined' || !document.fonts) return
