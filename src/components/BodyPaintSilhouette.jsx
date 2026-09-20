@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { PAINT_VIEWBOX, BODY_OFFSET, getBodyClipPath } from './bodyShapeDef.js'
+import { PAINT_VIEWBOX, BODY_OFFSET, getBodyClipPath, splitStrokeByBodyRegion } from './bodyShapeDef.js'
 import { cssVar } from '../cssVar.js'
 import { lockPageScroll, unlockPageScroll } from '../touchScrollLock.js'
 
@@ -15,7 +15,30 @@ function readColors() {
   return {
     silhouette: cssVar('--color-silhouette', '#ded1c0'),
     primary: cssVar('--color-primary', '#c39a82'),
+    accent: cssVar('--color-accent', '#93a98d'),
+    surface: cssVar('--color-surface', '#ffffff'),
+    border: cssVar('--color-border', '#e4dcd0'),
   }
+}
+
+// 「フリーで描く」用キャンバス(FreeDrawCanvas.jsx)と同じ見た目のカード状の枠を描き、
+// キャンバス領域がどこからどこまでかをはっきりさせる
+function drawBackground(ctx, colors) {
+  const r = 14
+  const w = PAINT_VIEWBOX.width
+  const h = PAINT_VIEWBOX.height
+  ctx.beginPath()
+  ctx.moveTo(r, 0)
+  ctx.arcTo(w, 0, w, h, r)
+  ctx.arcTo(w, h, 0, h, r)
+  ctx.arcTo(0, h, 0, 0, r)
+  ctx.arcTo(0, 0, w, 0, r)
+  ctx.closePath()
+  ctx.fillStyle = colors.surface
+  ctx.fill()
+  ctx.lineWidth = 2
+  ctx.strokeStyle = colors.border
+  ctx.stroke()
 }
 
 function drawSilhouette(ctx, colors) {
@@ -26,23 +49,27 @@ function drawSilhouette(ctx, colors) {
   ctx.restore()
 }
 
+// 人型の内側を塗った跡と外側を塗った跡とで色を変え、体の輪郭が跡を見ただけでわかるようにする
 function drawStrokeSegment(ctx, pts, colors) {
   if (!pts || pts.length === 0) return
-  ctx.strokeStyle = colors.primary
-  ctx.fillStyle = colors.primary
   ctx.lineWidth = LINE_WIDTH
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  if (pts.length === 1) {
+  splitStrokeByBodyRegion(pts).forEach((run) => {
+    const color = run.inside ? colors.primary : colors.accent
+    if (run.pts.length === 1) {
+      ctx.fillStyle = color
+      ctx.beginPath()
+      ctx.arc(run.pts[0].x, run.pts[0].y, LINE_WIDTH / 2, 0, Math.PI * 2)
+      ctx.fill()
+      return
+    }
+    ctx.strokeStyle = color
     ctx.beginPath()
-    ctx.arc(pts[0].x, pts[0].y, LINE_WIDTH / 2, 0, Math.PI * 2)
-    ctx.fill()
-    return
-  }
-  ctx.beginPath()
-  ctx.moveTo(pts[0].x, pts[0].y)
-  pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
-  ctx.stroke()
+    ctx.moveTo(run.pts[0].x, run.pts[0].y)
+    run.pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
+    ctx.stroke()
+  })
 }
 
 export default function BodyPaintSilhouette({ strokes, onChange }) {
@@ -61,6 +88,7 @@ export default function BodyPaintSilhouette({ strokes, onChange }) {
     const ctx = ctxRef.current
     if (!ctx || !colorsRef.current) return
     ctx.clearRect(0, 0, PAINT_VIEWBOX.width, PAINT_VIEWBOX.height)
+    drawBackground(ctx, colorsRef.current)
     drawSilhouette(ctx, colorsRef.current)
     strokesRef.current.forEach((pts) => drawStrokeSegment(ctx, pts, colorsRef.current))
   }
@@ -130,14 +158,7 @@ export default function BodyPaintSilhouette({ strokes, onChange }) {
     const prev = currentStrokeRef.current[currentStrokeRef.current.length - 1]
     const next = pointFromEvent(e)
     currentStrokeRef.current.push(next)
-    ctx.strokeStyle = colorsRef.current.primary
-    ctx.lineWidth = LINE_WIDTH
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    ctx.beginPath()
-    ctx.moveTo(prev.x, prev.y)
-    ctx.lineTo(next.x, next.y)
-    ctx.stroke()
+    drawStrokeSegment(ctx, [prev, next], colorsRef.current)
   }
 
   const finishStroke = () => {

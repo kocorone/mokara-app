@@ -104,6 +104,45 @@ export function getBodyClipPath() {
   return path
 }
 
+let bodyHitTestCtx = null
+function getBodyHitTestCtx() {
+  if (!bodyHitTestCtx && typeof document !== 'undefined') {
+    bodyHitTestCtx = document.createElement('canvas').getContext('2d')
+  }
+  return bodyHitTestCtx
+}
+
+// 塗った点(PAINT_VIEWBOX座標系)が、人型シルエットの内側かどうかを判定する
+// (内側/外側で塗る色を変え、境目=体の輪郭がひと目でわかるようにするために使う)
+export function isPointInsideBody(paintX, paintY) {
+  const ctx = getBodyHitTestCtx()
+  if (!ctx) return true
+  return ctx.isPointInPath(getBodyClipPath(), paintX - BODY_OFFSET.x, paintY - BODY_OFFSET.y)
+}
+
+// 1本分の塗り跡(点列)を、人型の内側/外側の境目で区間に分割する。
+// 区間の切れ目には境界点を両方の区間に含め、線がつながって見えるようにする。
+export function splitStrokeByBodyRegion(pts) {
+  if (!pts || pts.length === 0) return []
+  let currentInside = isPointInsideBody(pts[0].x, pts[0].y)
+  let currentPts = [pts[0]]
+  const runs = []
+  for (let i = 1; i < pts.length; i += 1) {
+    const p = pts[i]
+    const inside = isPointInsideBody(p.x, p.y)
+    if (inside !== currentInside) {
+      currentPts.push(p)
+      runs.push({ inside: currentInside, pts: currentPts })
+      currentInside = inside
+      currentPts = [p]
+    } else {
+      currentPts.push(p)
+    }
+  }
+  runs.push({ inside: currentInside, pts: currentPts })
+  return runs
+}
+
 // 記録画像(PNG)向け: 塗った跡つきの人型シルエットを、高さheightで(x, y)を左上として描画する
 // (人型の周りの余白にはみ出して塗った跡もそのまま描画する)
 export function drawBodySilhouettePreview(ctx, strokes, x, y, height, colors) {
@@ -120,23 +159,26 @@ export function drawBodySilhouettePreview(ctx, strokes, x, y, height, colors) {
   ctx.fill(getBodyClipPath())
   ctx.restore()
 
-  ctx.strokeStyle = colors.primary
-  ctx.fillStyle = colors.primary
   ctx.lineWidth = 10
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ;(strokes || []).forEach((pts) => {
     if (!pts || pts.length === 0) return
-    if (pts.length === 1 || (pts[0].x === pts[1]?.x && pts[0].y === pts[1]?.y)) {
+    splitStrokeByBodyRegion(pts).forEach((run) => {
+      const color = run.inside ? colors.primary : colors.accent
+      if (run.pts.length === 1 || (run.pts[0].x === run.pts[1]?.x && run.pts[0].y === run.pts[1]?.y)) {
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.arc(run.pts[0].x, run.pts[0].y, 5, 0, Math.PI * 2)
+        ctx.fill()
+        return
+      }
+      ctx.strokeStyle = color
       ctx.beginPath()
-      ctx.arc(pts[0].x, pts[0].y, 5, 0, Math.PI * 2)
-      ctx.fill()
-      return
-    }
-    ctx.beginPath()
-    ctx.moveTo(pts[0].x, pts[0].y)
-    pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
-    ctx.stroke()
+      ctx.moveTo(run.pts[0].x, run.pts[0].y)
+      run.pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
+      ctx.stroke()
+    })
   })
   ctx.restore()
 
