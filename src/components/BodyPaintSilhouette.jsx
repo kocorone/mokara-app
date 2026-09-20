@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { PAINT_VIEWBOX, BODY_OFFSET, getBodyClipPath, splitStrokeByBodyRegion } from './bodyShapeDef.js'
+import { PAINT_VIEWBOX, getBodyClipPathAtOffset, fillSilhouette, paintStrokeRun } from './bodyShapeDef.js'
 import { cssVar } from '../cssVar.js'
 import { lockPageScroll, unlockPageScroll } from '../touchScrollLock.js'
 
@@ -41,35 +41,21 @@ function drawBackground(ctx, colors) {
   ctx.stroke()
 }
 
-function drawSilhouette(ctx, colors) {
-  ctx.save()
-  ctx.translate(BODY_OFFSET.x, BODY_OFFSET.y)
-  ctx.fillStyle = colors.silhouette
-  ctx.fill(getBodyClipPath())
-  ctx.restore()
-}
-
-// 人型の内側を塗った跡と外側を塗った跡とで色を変え、体の輪郭が跡を見ただけでわかるようにする
+// 人型の内側/外側で塗る色を分けつつ、境目が体の輪郭そのものできっぱり切り替わるように
+// 1本分の塗り跡を描画する。先に外側の色をクリップなしで塗り、次にシルエットで
+// 内側ぶんを覆い隠し、最後に内側だけにクリップした色を上から重ねる
+// (点の間を補間した線ではなく輪郭の形自体で切り取るため、なぞった軌跡の粗さに
+// 関わらずくっきりした境目になる)。
 function drawStrokeSegment(ctx, pts, colors) {
   if (!pts || pts.length === 0) return
   ctx.lineWidth = LINE_WIDTH
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  splitStrokeByBodyRegion(pts).forEach((run) => {
-    const color = run.inside ? colors.primary : colors.accent
-    if (run.pts.length === 1) {
-      ctx.fillStyle = color
-      ctx.beginPath()
-      ctx.arc(run.pts[0].x, run.pts[0].y, LINE_WIDTH / 2, 0, Math.PI * 2)
-      ctx.fill()
-      return
-    }
-    ctx.strokeStyle = color
-    ctx.beginPath()
-    ctx.moveTo(run.pts[0].x, run.pts[0].y)
-    run.pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
-    ctx.stroke()
-  })
+  paintStrokeRun(ctx, pts, colors.accent)
+  ctx.save()
+  ctx.clip(getBodyClipPathAtOffset())
+  paintStrokeRun(ctx, pts, colors.primary)
+  ctx.restore()
 }
 
 export default function BodyPaintSilhouette({ strokes, onChange }) {
@@ -89,7 +75,7 @@ export default function BodyPaintSilhouette({ strokes, onChange }) {
     if (!ctx || !colorsRef.current) return
     ctx.clearRect(0, 0, PAINT_VIEWBOX.width, PAINT_VIEWBOX.height)
     drawBackground(ctx, colorsRef.current)
-    drawSilhouette(ctx, colorsRef.current)
+    fillSilhouette(ctx, colorsRef.current)
     strokesRef.current.forEach((pts) => drawStrokeSegment(ctx, pts, colorsRef.current))
   }
 

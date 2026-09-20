@@ -104,43 +104,52 @@ export function getBodyClipPath() {
   return path
 }
 
-let bodyHitTestCtx = null
-function getBodyHitTestCtx() {
-  if (!bodyHitTestCtx && typeof document !== 'undefined') {
-    bodyHitTestCtx = document.createElement('canvas').getContext('2d')
-  }
-  return bodyHitTestCtx
+// getBodyClipPath()をPAINT_VIEWBOX座標系(BODY_OFFSETぶんずらした位置)に置いた版。
+// 塗った跡の「内側だけにクリップする」ために、キャンバス側で使う。
+export function getBodyClipPathAtOffset() {
+  const path = new Path2D()
+  path.addPath(getBodyClipPath(), new DOMMatrix().translate(BODY_OFFSET.x, BODY_OFFSET.y))
+  return path
 }
 
-// 塗った点(PAINT_VIEWBOX座標系)が、人型シルエットの内側かどうかを判定する
-// (内側/外側で塗る色を変え、境目=体の輪郭がひと目でわかるようにするために使う)
-export function isPointInsideBody(paintX, paintY) {
-  const ctx = getBodyHitTestCtx()
-  if (!ctx) return true
-  return ctx.isPointInPath(getBodyClipPath(), paintX - BODY_OFFSET.x, paintY - BODY_OFFSET.y)
+// 1本分の塗り跡(点列)をctxの現在のstrokeStyle/fillStyleで描く
+// (1点だけなら丸い点、2点以上ならその軌跡をつないだ線として描く)
+export function paintStrokeRun(ctx, pts, color) {
+  if (!pts || pts.length === 0) return
+  ctx.strokeStyle = color
+  ctx.fillStyle = color
+  if (pts.length === 1 || (pts[0].x === pts[1]?.x && pts[0].y === pts[1]?.y)) {
+    ctx.beginPath()
+    ctx.arc(pts[0].x, pts[0].y, ctx.lineWidth / 2, 0, Math.PI * 2)
+    ctx.fill()
+    return
+  }
+  ctx.beginPath()
+  ctx.moveTo(pts[0].x, pts[0].y)
+  pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
+  ctx.stroke()
 }
 
-// 1本分の塗り跡(点列)を、人型の内側/外側の境目で区間に分割する。
-// 区間の切れ目には境界点を両方の区間に含め、線がつながって見えるようにする。
-export function splitStrokeByBodyRegion(pts) {
-  if (!pts || pts.length === 0) return []
-  let currentInside = isPointInsideBody(pts[0].x, pts[0].y)
-  let currentPts = [pts[0]]
-  const runs = []
-  for (let i = 1; i < pts.length; i += 1) {
-    const p = pts[i]
-    const inside = isPointInsideBody(p.x, p.y)
-    if (inside !== currentInside) {
-      currentPts.push(p)
-      runs.push({ inside: currentInside, pts: currentPts })
-      currentInside = inside
-      currentPts = [p]
-    } else {
-      currentPts.push(p)
-    }
-  }
-  runs.push({ inside: currentInside, pts: currentPts })
-  return runs
+// PAINT_VIEWBOX座標系に置いた人型シルエットを塗りつぶす
+export function fillSilhouette(ctx, colors) {
+  ctx.fillStyle = colors.silhouette
+  ctx.fill(getBodyClipPathAtOffset())
+}
+
+// 塗った跡を、人型の内側/外側で色を分けつつ、境目が体の輪郭そのものできっぱり
+// 切り替わるように描画する(点の間を補間して繋いだ線ではなく、輪郭の形自体で
+// 切り取ることで、なぞった軌跡の粗さに関わらず輪郭に沿ったくっきりした境目になる)。
+// 手順: ①外側の色をクリップなしで塗る → ②不透明なシルエットで内側ぶんを覆い隠す
+// → ③内側だけにクリップした色を上から重ねる。
+export function paintStrokesInsideOutside(ctx, strokes, colors) {
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ;(strokes || []).forEach((pts) => paintStrokeRun(ctx, pts, colors.accent))
+  fillSilhouette(ctx, colors)
+  ctx.save()
+  ctx.clip(getBodyClipPathAtOffset())
+  ;(strokes || []).forEach((pts) => paintStrokeRun(ctx, pts, colors.primary))
+  ctx.restore()
 }
 
 // 記録画像(PNG)向け: 塗った跡つきの人型シルエットを、高さheightで(x, y)を左上として描画する
@@ -152,34 +161,8 @@ export function drawBodySilhouettePreview(ctx, strokes, x, y, height, colors) {
   ctx.save()
   ctx.translate(x, y)
   ctx.scale(scale, scale)
-
-  ctx.save()
-  ctx.translate(BODY_OFFSET.x, BODY_OFFSET.y)
-  ctx.fillStyle = colors.silhouette
-  ctx.fill(getBodyClipPath())
-  ctx.restore()
-
   ctx.lineWidth = 10
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  ;(strokes || []).forEach((pts) => {
-    if (!pts || pts.length === 0) return
-    splitStrokeByBodyRegion(pts).forEach((run) => {
-      const color = run.inside ? colors.primary : colors.accent
-      if (run.pts.length === 1 || (run.pts[0].x === run.pts[1]?.x && run.pts[0].y === run.pts[1]?.y)) {
-        ctx.fillStyle = color
-        ctx.beginPath()
-        ctx.arc(run.pts[0].x, run.pts[0].y, 5, 0, Math.PI * 2)
-        ctx.fill()
-        return
-      }
-      ctx.strokeStyle = color
-      ctx.beginPath()
-      ctx.moveTo(run.pts[0].x, run.pts[0].y)
-      run.pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
-      ctx.stroke()
-    })
-  })
+  paintStrokesInsideOutside(ctx, strokes, colors)
   ctx.restore()
 
   return { width, height }
