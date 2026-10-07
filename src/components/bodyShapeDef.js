@@ -152,8 +152,10 @@ export function paintStrokesInsideOutside(ctx, strokes, colors) {
   ctx.restore()
 }
 
-// 記録画像(PNG)向け: 塗った跡つきの人型シルエットを、高さheightで(x, y)を左上として描画する
-// (人型の周りの余白にはみ出して塗った跡もそのまま描画する)
+// 記録画像(PNG)向け: 塗った跡つきの人型シルエットを、高さheightで(x, y)を左上として描画する。
+// 選択画面で塗ったものがそのまま縮小表示されるよう、画面上のプレビュー(BodyPartPreview.jsx)と
+// 同じく、キャンバスの範囲を示す下地 → 人型 → 塗った跡(内側/外側で色分け)の順に描く
+// (人型の周りの余白にはみ出して塗った跡もそのまま描画する)。
 export function drawBodySilhouettePreview(ctx, strokes, x, y, height, colors) {
   const scale = height / PAINT_VIEWBOX.height
   const width = PAINT_VIEWBOX.width * scale
@@ -161,6 +163,21 @@ export function drawBodySilhouettePreview(ctx, strokes, x, y, height, colors) {
   ctx.save()
   ctx.translate(x, y)
   ctx.scale(scale, scale)
+
+  // 人型の外側に塗った跡が、どのあたりに付いたのかを読み取れるようにするための下地
+  const r = 14
+  const w = PAINT_VIEWBOX.width
+  const h = PAINT_VIEWBOX.height
+  ctx.beginPath()
+  ctx.moveTo(r, 0)
+  ctx.arcTo(w, 0, w, h, r)
+  ctx.arcTo(w, h, 0, h, r)
+  ctx.arcTo(0, h, 0, 0, r)
+  ctx.arcTo(0, 0, w, 0, r)
+  ctx.closePath()
+  ctx.fillStyle = colors.surfaceSoft
+  ctx.fill()
+
   ctx.lineWidth = 10
   paintStrokesInsideOutside(ctx, strokes, colors)
   ctx.restore()

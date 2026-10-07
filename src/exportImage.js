@@ -260,8 +260,9 @@ function buildRecordImageBlob(answers) {
     const shapeItemSize = 62
     const shapeRowMeta = measureShapeRow(mctx, shape, shapeItemSize)
 
-    // 体の部位: 塗った跡つきの人型シルエットの絵として描画する(言葉のラベルは使わない)
-    const bodyPartItemHeight = 130
+    // 体の部位: 塗った跡つきの人型シルエットの絵として描画する(言葉のラベルは使わない)。
+    // 塗った跡の色・場所・内側/外側の塗り分けが読み取れるよう、「形」の線画と同じくらいの大きさにする
+    const bodyPartItemHeight = 190
     const bodyPartRowMeta =
       bodyPart.skipped || !bodyPart.value || bodyPart.value.length === 0
         ? { kind: 'text', height: 30 }
