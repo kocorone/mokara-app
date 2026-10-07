@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { isMobileDevice, getStoredSoundPref, setStoredSoundPref } from '../soundPref.js'
+import SoundPermissionPrompt from './SoundPermissionPrompt.jsx'
 
 // 曲が終わってから次のループ再生までの、少しの間(ミリ秒)
 const LOOP_GAP_MS = 2500
@@ -26,16 +28,28 @@ function SpeakerOffIcon() {
 export default function BackgroundMusic() {
   const audioRef = useRef(null)
   const gapTimerRef = useRef(null)
-  const playingRef = useRef(true)
-  const [playing, setPlaying] = useState(true)
+
+  // スマホかどうか・保存済みの「音あり/音なし」の選択は、初回レンダー時に一度だけ判定する
+  const mobileRef = useRef(isMobileDevice())
+  const storedPrefRef = useRef(getStoredSoundPref())
+  // スマホ初回アクセス(まだ選んでいない)の場合だけ、最初にポップアップを出す
+  const [needsPrompt, setNeedsPrompt] = useState(mobileRef.current && storedPrefRef.current === null)
+
+  // 初期の再生状態: ポップアップ待ちの間は鳴らさない。スマホで選択済みならその通り。
+  // パソコンは今まで通り、常に鳴らす前提で始める(自動再生がブロックされれば後述のunlockで解除)。
+  const initialPlaying = needsPrompt ? false : mobileRef.current ? storedPrefRef.current === 'on' : true
+  const playingRef = useRef(initialPlaying)
+  const [playing, setPlaying] = useState(initialPlaying)
 
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
     audio.volume = VOLUME
-    audio.play().catch(() => {
-      // 自動再生がブロックされた場合は、最初のタップ/クリックで再生を開始する
-    })
+    if (playingRef.current) {
+      audio.play().catch(() => {
+        // 自動再生がブロックされた場合は、最初のタップ/クリックで再生を開始する
+      })
+    }
 
     // ブラウザの自動再生制限を、ページ内の最初の操作で解除する
     const unlock = () => {
@@ -62,12 +76,11 @@ export default function BackgroundMusic() {
     }, LOOP_GAP_MS)
   }
 
-  const toggle = () => {
+  const applyPlaying = (next) => {
     const audio = audioRef.current
-    if (!audio) return
-    const next = !playingRef.current
     playingRef.current = next
     setPlaying(next)
+    if (!audio) return
     if (next) {
       audio.play().catch(() => {})
     } else {
@@ -79,9 +92,26 @@ export default function BackgroundMusic() {
     }
   }
 
+  // ポップアップで「音あり/音なし」を選んだ時: 選択を端末に記憶し、次回から聞かない
+  const handleChoosePref = (wantsSound) => {
+    setStoredSoundPref(wantsSound ? 'on' : 'off')
+    setNeedsPrompt(false)
+    // ボタンのクリック(ユーザー操作)の流れの中でそのまま再生を開始することで、
+    // スマホの自動再生制限に引っかからず鳴らせる
+    applyPlaying(wantsSound)
+  }
+
+  // 画面隅のボタン: あとからいつでも切り替えられる。スマホでは選び直した内容も記憶し直す。
+  const toggle = () => {
+    const next = !playingRef.current
+    applyPlaying(next)
+    if (mobileRef.current) setStoredSoundPref(next ? 'on' : 'off')
+  }
+
   return (
     <>
       <audio ref={audioRef} src="/アイリッシュの風.mp3" onEnded={handleEnded} preload="auto" />
+      {needsPrompt && <SoundPermissionPrompt onChoose={handleChoosePref} />}
       <button
         type="button"
         className="music-toggle-button"
